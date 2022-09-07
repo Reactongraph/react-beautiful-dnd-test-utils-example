@@ -1,10 +1,12 @@
-import React from 'react';
+import React,{useState} from 'react';
 import { DragDropContext, Droppable } from 'react-beautiful-dnd';
 import styled from 'styled-components';
+import InnerList from './components/InnerList';
 import Column from './Column';
 
 const Container = styled.div`
   display: flex;
+  justify-content: center;
 `;
 
 const reorder = (array, startIndex, endIndex) => {
@@ -15,18 +17,11 @@ const reorder = (array, startIndex, endIndex) => {
   return result;
 };
 
-class InnerList extends React.PureComponent {
-  render() {
-    const { column, taskMap, index } = this.props;
-    const tasks = column.taskIds.map(taskId => taskMap[taskId]);
-    return <Column column={column} tasks={tasks} index={index} />;
-  }
-}
+const App = ({initialState}) => {
+  const[state, setState] = useState(initialState)
+  console.log("state",state);
 
-class App extends React.Component {
-  state = this.props.initialState;
-
-  onDragEnd = result => {
+  const onDragEnd = (result) => {
     const { destination, source, draggableId, type } = result;
 
     if (!destination) {
@@ -41,10 +36,10 @@ class App extends React.Component {
     }
 
     if (type === 'COLUMN') {
-      this.setState({
-        ...this.state,
+      setState({
+        ...state,
         columnOrder: reorder(
-          this.state.columnOrder,
+          state.columnOrder,
           source.index,
           destination.index,
         ),
@@ -52,8 +47,8 @@ class App extends React.Component {
       return;
     }
 
-    const home = this.state.columns[source.droppableId];
-    const foreign = this.state.columns[destination.droppableId];
+    const home = state.columns[source.droppableId];
+    const foreign = state.columns[destination.droppableId];
 
     if (home === foreign) {
       const newColumn = {
@@ -62,14 +57,14 @@ class App extends React.Component {
       };
 
       const newState = {
-        ...this.state,
+        ...state,
         columns: {
-          ...this.state.columns,
+          ...state.columns,
           [newColumn.id]: newColumn,
         },
       };
 
-      this.setState(newState);
+      setState(newState);
       return;
     }
 
@@ -88,41 +83,39 @@ class App extends React.Component {
     };
 
     const newState = {
-      ...this.state,
+      ...state,
       columns: {
-        ...this.state.columns,
+        ...state.columns,
         [newHome.id]: newHome,
         [newForeign.id]: newForeign,
       },
     };
-    this.setState(newState);
+    setState(newState);
   };
+  return (
+    <DragDropContext onDragEnd={onDragEnd} className='dragDropContext'>
+    <Droppable droppableId="board" direction="horizontal" type="COLUMN">
+      {provided => (
+        <Container ref={provided.innerRef} {...provided.droppableProps}>
+          {state.columnOrder.map((columnId, index) => {
+            const column = state.columns[columnId];
 
-  render() {
-    return (
-      <DragDropContext onDragEnd={this.onDragEnd}>
-        <Droppable droppableId="board" direction="horizontal" type="COLUMN">
-          {provided => (
-            <Container ref={provided.innerRef} {...provided.droppableProps}>
-              {this.state.columnOrder.map((columnId, index) => {
-                const column = this.state.columns[columnId];
-
-                return (
-                  <InnerList
-                    key={column.id}
-                    column={column}
-                    index={index}
-                    taskMap={this.state.tasks}
-                  />
-                );
-              })}
-              {provided.placeholder}
-            </Container>
-          )}
-        </Droppable>
-      </DragDropContext>
-    );
-  }
+            return (
+              <InnerList
+                key={column.id}
+                column={column}
+                index={index}
+                taskMap={state.tasks}
+                className='innerList'
+              />
+            );
+          })}
+          {provided.placeholder}
+        </Container>
+      )}
+    </Droppable>
+  </DragDropContext>
+  )
 }
 
-export default App;
+export default App
